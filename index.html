@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceFox 达人合作自动化系统</title>
+
+    <!-- Fonts: Syne for bold display, Noto Sans SC for Chinese -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           修改这里可以改变整体配色
+           =========================================== */
+        :root {
+            --bg-primary: #0c1222;
+            --bg-card: #141e33;
+            --bg-card-alt: #1a2740;
+            --text-primary: #e8ecf4;
+            --text-secondary: #8899b4;
+            --text-muted: #5a6d8a;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.25);
+            --accent-warm: #f59e0b;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-pink: #ec4899;
+            --border: rgba(255, 255, 255, 0.06);
+
+            --font-display: 'Syne', 'Noto Sans SC', sans-serif;
+            --font-body: 'Noto Sans SC', 'Space Grotesk', sans-serif;
+            --font-mono: 'Space Grotesk', monospace;
+
+            --title-size: clamp(1.8rem, 5vw, 3.8rem);
+            --h2-size: clamp(1.3rem, 3.5vw, 2.4rem);
+            --h3-size: clamp(1rem, 2.2vw, 1.5rem);
+            --body-size: clamp(0.78rem, 1.4vw, 1.05rem);
+            --small-size: clamp(0.65rem, 1vw, 0.85rem);
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(0.5rem, 2vw, 1.5rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.7s;
+        }
+
+        /* ===========================================
+           BASE RESET
+           =========================================== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           =========================================== */
+        html, body { height: 100%; overflow-x: hidden; }
+        html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+        .slide {
+            width: 100vw; height: 100vh; height: 100dvh;
+            overflow: hidden; scroll-snap-align: start;
+            display: flex; flex-direction: column; position: relative;
+        }
+        .slide-content {
+            flex: 1; display: flex; flex-direction: column; justify-content: center;
+            max-height: 100%; overflow: hidden; padding: var(--slide-padding);
+        }
+        .card, .container, .content-box { max-width: min(90vw, 1100px); max-height: min(80vh, 700px); }
+        .feature-list, .bullet-list { gap: clamp(0.4rem, 1vh, 1rem); }
+        .feature-list li, .bullet-list li { font-size: var(--body-size); line-height: 1.4; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+        }
+        img, .image-container { max-width: 100%; max-height: min(50vh, 400px); object-fit: contain; }
+
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+                --h2-size: clamp(1rem, 3vw, 1.75rem);
+            }
+        }
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.1rem, 4vw, 2rem);
+                --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            }
+            .nav-dots, .keyboard-hint, .decorative, .slide-num { display: none; }
+        }
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+                --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+                --body-size: clamp(0.65rem, 1vw, 0.85rem);
+            }
+        }
+        @media (max-width: 600px) {
+            :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+            .grid { grid-template-columns: 1fr; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+            html { scroll-behavior: auto; }
+        }
+
+        /* ===========================================
+           GLOBAL STYLES
+           =========================================== */
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===========================================
+           SLIDE STYLES
+           =========================================== */
+        .slide {
+            background: var(--bg-primary);
+        }
+
+        /* Slide number indicator */
+        .slide-num {
+            position: absolute;
+            top: clamp(1rem, 2.5vw, 2rem);
+            right: clamp(1rem, 3vw, 3rem);
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            z-index: 5;
+        }
+
+        /* Section label */
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: clamp(0.4rem, 1vh, 0.8rem);
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            margin-bottom: var(--content-gap);
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: clamp(0.9rem, 1.8vw, 1.2rem);
+            color: var(--text-secondary);
+            font-weight: 300;
+            line-height: 1.5;
+            max-width: 45ch;
+        }
+
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(25px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal { opacity: 1; transform: translateY(0); }
+        .reveal:nth-child(1) { transition-delay: 0.05s; }
+        .reveal:nth-child(2) { transition-delay: 0.15s; }
+        .reveal:nth-child(3) { transition-delay: 0.25s; }
+        .reveal:nth-child(4) { transition-delay: 0.35s; }
+        .reveal:nth-child(5) { transition-delay: 0.45s; }
+        .reveal:nth-child(6) { transition-delay: 0.55s; }
+
+        /* ===========================================
+           TITLE SLIDE
+           =========================================== */
+        .title-slide {
+            background:
+                radial-gradient(ellipse at 30% 70%, rgba(59,130,246,0.12) 0%, transparent 55%),
+                radial-gradient(ellipse at 70% 30%, rgba(139,92,246,0.08) 0%, transparent 55%),
+                var(--bg-primary);
+        }
+        .title-slide .slide-content {
+            justify-content: center;
+            align-items: flex-start;
+            padding-left: clamp(2rem, 8vw, 8rem);
+        }
+        .title-slide h1 {
+            background: linear-gradient(135deg, #e8ecf4 0%, #8899b4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .title-badge {
+            display: inline-block;
+            padding: clamp(0.2rem, 0.5vw, 0.4rem) clamp(0.6rem, 1.2vw, 1rem);
+            background: rgba(59,130,246,0.15);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 100px;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--accent);
+            margin-bottom: clamp(0.8rem, 1.5vh, 1.5rem);
+        }
+        .title-meta {
+            margin-top: clamp(1rem, 2vh, 2rem);
+            font-size: var(--small-size);
+            color: var(--text-muted);
+        }
+
+        /* ===========================================
+           SECTION DIVIDER SLIDE
+           =========================================== */
+        .section-slide {
+            background:
+                radial-gradient(ellipse at 50% 50%, rgba(59,130,246,0.08) 0%, transparent 60%),
+                var(--bg-primary);
+        }
+        .section-slide .slide-content {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .section-number {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 10vw, 8rem);
+            font-weight: 800;
+            color: rgba(59,130,246,0.12);
+            line-height: 1;
+            margin-bottom: clamp(-0.5rem, -1vw, -1rem);
+        }
+        .section-slide h2 {
+            font-size: var(--title-size);
+            margin-bottom: clamp(0.5rem, 1vh, 1rem);
+        }
+        .section-slide .subtitle {
+            max-width: 55ch;
+            text-align: center;
+        }
+
+        /* ===========================================
+           CONTENT CARDS
+           =========================================== */
+        .cards-grid {
+            display: grid;
+            gap: clamp(0.5rem, 1.2vw, 1rem);
+            width: 100%;
+            max-width: 1100px;
+        }
+        .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+        @media (max-width: 768px) {
+            .cards-grid.cols-3, .cards-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 500px) {
+            .cards-grid.cols-2, .cards-grid.cols-3, .cards-grid.cols-4 { grid-template-columns: 1fr; }
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: clamp(8px, 1vw, 14px);
+            padding: clamp(0.8rem, 1.5vw, 1.4rem);
+            transition: border-color 0.3s ease, transform 0.3s ease;
+        }
+        .info-card:hover {
+            border-color: rgba(59,130,246,0.2);
+            transform: translateY(-2px);
+        }
+        .card-icon {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            margin-bottom: clamp(0.3rem, 0.8vw, 0.6rem);
+        }
+        .info-card h3 {
+            font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+            margin-bottom: clamp(0.2rem, 0.5vw, 0.4rem);
+        }
+        .info-card p {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ===========================================
+           FEATURE LIST (bullet items)
+           =========================================== */
+        .feature-items {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vh, 0.8rem);
+            max-width: 900px;
+        }
+        .feature-items li {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(0.4rem, 0.8vw, 0.8rem);
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .feature-items li::before {
+            content: '';
+            flex-shrink: 0;
+            width: clamp(5px, 0.6vw, 7px);
+            height: clamp(5px, 0.6vw, 7px);
+            background: var(--accent);
+            border-radius: 50%;
+            margin-top: 0.55em;
+        }
+        .feature-items li strong {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* ===========================================
+           FLOW CHART STYLES
+           =========================================== */
+        .flow-container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Pipeline / layered diagram */
+        .pipeline {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.3rem, 0.6vh, 0.5rem);
+            width: 100%;
+            max-width: 900px;
+        }
+        .pipeline-step {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.5rem, 1vw, 1rem);
+            padding: clamp(0.5rem, 1vw, 0.8rem) clamp(0.8rem, 1.5vw, 1.2rem);
+            background: var(--bg-card);
+            border-radius: clamp(6px, 0.8vw, 10px);
+            border-left: 3px solid var(--accent);
+            transition: transform 0.2s ease;
+        }
+        .pipeline-step:hover { transform: translateX(4px); }
+        .pipeline-step .step-num {
+            font-family: var(--font-display);
+            font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+            font-weight: 700;
+            color: var(--accent);
+            flex-shrink: 0;
+            width: clamp(1.5rem, 3vw, 2.2rem);
+        }
+        .pipeline-step .step-label {
+            font-size: clamp(0.8rem, 1.3vw, 1rem);
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .pipeline-step .step-desc {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            margin-left: auto;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .pipeline-arrow {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
+            line-height: 1;
+        }
+
+        /* === NEGOTIATION FLOWCHART === */
+        .negotiation-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(0.15rem, 0.4vh, 0.3rem);
+            width: 100%;
+        }
+
+        .flow-node {
+            padding: clamp(0.45rem, 0.9vw, 0.7rem) clamp(1rem, 2vw, 1.8rem);
+            border-radius: clamp(6px, 0.8vw, 10px);
+            font-size: clamp(0.72rem, 1.2vw, 0.92rem);
+            font-weight: 500;
+            text-align: center;
+            max-width: 90%;
+            position: relative;
+        }
+        .flow-node.start {
+            background: var(--accent);
+            color: #fff;
+            border-radius: 100px;
+            font-weight: 600;
+        }
+        .flow-node.decision {
+            background: var(--bg-card-alt);
+            border: 2px solid var(--accent-warm);
+            color: var(--text-primary);
+            clip-path: none;
+            border-radius: clamp(6px, 0.8vw, 10px);
+        }
+        .flow-node.action-green {
+            background: rgba(16,185,129,0.12);
+            border: 1px solid rgba(16,185,129,0.4);
+            color: var(--accent-green);
+        }
+        .flow-node.action-blue {
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.4);
+            color: var(--accent);
+        }
+        .flow-node.action-purple {
+            background: rgba(139,92,246,0.12);
+            border: 1px solid rgba(139,92,246,0.4);
+            color: var(--accent-purple);
+        }
+        .flow-node.action-red {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.35);
+            color: var(--accent-red);
+        }
+        .flow-node.action-warm {
+            background: rgba(245,158,11,0.1);
+            border: 1px solid rgba(245,158,11,0.35);
+            color: var(--accent-warm);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            font-size: clamp(0.65rem, 1vw, 0.8rem);
+            display: flex;
+            align-items: center;
+            gap: 0.3em;
+        }
+        .flow-arrow::before {
+            content: '↓';
+            font-size: 1.1em;
+        }
+
+        /* Branching row */
+        .flow-branches {
+            display: flex;
+            gap: clamp(0.4rem, 1vw, 0.8rem);
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .flow-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(0.15rem, 0.3vh, 0.25rem);
+            flex: 1;
+            min-width: clamp(120px, 20vw, 200px);
+            max-width: clamp(160px, 25vw, 260px);
+        }
+        .branch-label {
+            font-size: clamp(0.6rem, 0.9vw, 0.75rem);
+            color: var(--text-muted);
+            font-weight: 500;
+            text-align: center;
+        }
+        .flow-branch .flow-node {
+            width: 100%;
+            font-size: clamp(0.65rem, 1vw, 0.82rem);
+            padding: clamp(0.35rem, 0.7vw, 0.55rem) clamp(0.5rem, 1vw, 0.8rem);
+        }
+        .flow-branch .flow-arrow {
+            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+        }
+        .round-label {
+            font-size: clamp(0.55rem, 0.8vw, 0.68rem);
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* === STAGE PIPELINE (horizontal) === */
+        .stage-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(0.2rem, 0.4vw, 0.35rem);
+            align-items: center;
+            justify-content: center;
+        }
+        .stage-chip {
+            padding: clamp(0.25rem, 0.5vw, 0.4rem) clamp(0.5rem, 1vw, 0.8rem);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: clamp(0.62rem, 1vw, 0.8rem);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .stage-chip.active {
+            background: rgba(59,130,246,0.15);
+            border-color: rgba(59,130,246,0.4);
+            color: var(--accent);
+        }
+        .stage-arrow {
+            color: var(--text-muted);
+            font-size: clamp(0.6rem, 0.8vw, 0.75rem);
+        }
+
+        /* === COMPARISON TABLE === */
+        .compare-table {
+            width: 100%;
+            max-width: 950px;
+            border-collapse: collapse;
+        }
+        .compare-table th, .compare-table td {
+            padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);
+            text-align: left;
+            font-size: var(--small-size);
+            border-bottom: 1px solid var(--border);
+        }
+        .compare-table th {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+        }
+        .compare-table thead th {
+            border-bottom: 2px solid rgba(59,130,246,0.3);
+            padding-bottom: clamp(0.5rem, 1vw, 0.8rem);
+        }
+        .compare-table td {
+            color: var(--text-secondary);
+        }
+        .compare-table .highlight {
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+        .compare-table .dim {
+            color: var(--text-muted);
+        }
+
+        /* === TAG / BADGE === */
+        .tag {
+            display: inline-block;
+            padding: clamp(0.15rem, 0.3vw, 0.25rem) clamp(0.4rem, 0.8vw, 0.6rem);
+            border-radius: 100px;
+            font-size: clamp(0.58rem, 0.85vw, 0.72rem);
+            font-weight: 500;
+        }
+        .tag-blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+        .tag-green { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+        .tag-warm { background: rgba(245,158,11,0.15); color: var(--accent-warm); }
+        .tag-red { background: rgba(239,68,68,0.12); color: var(--accent-red); }
+        .tag-purple { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-purple));
+            z-index: 9999;
+            transition: width 0.3s ease;
+        }
+
+        /* ===========================================
+           NAV DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: clamp(0.6rem, 1.5vw, 1.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(4px, 0.6vh, 8px);
+            z-index: 100;
+        }
+        .nav-dot {
+            width: clamp(5px, 0.5vw, 7px);
+            height: clamp(5px, 0.5vw, 7px);
+            border-radius: 50%;
+            background: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 0;
+        }
+        .nav-dot.active {
+            background: var(--accent);
+            transform: scale(1.5);
+        }
+
+        /* ===========================================
+           INLINE EDITING
+           =========================================== */
+        .edit-hotzone {
+            position: fixed; top: 0; left: 0;
+            width: 80px; height: 80px;
+            z-index: 10000; cursor: pointer;
+        }
+        .edit-toggle {
+            position: fixed; top: 12px; left: 12px;
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 10001;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .edit-toggle.show, .edit-toggle.active {
+            opacity: 1; pointer-events: auto;
+        }
+        .edit-toggle.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        [contenteditable="true"] {
+            outline: 1px dashed rgba(59,130,246,0.4);
+            outline-offset: 2px;
+            border-radius: 4px;
+            min-height: 1em;
+        }
+        [contenteditable="true"]:focus {
+            outline-color: var(--accent);
+            background: rgba(59,130,246,0.05);
+        }
+
+        /* ===========================================
+           UTILITY
+           =========================================== */
+        /* ===========================================
+           SIMULATOR STYLES
+           =========================================== */
+        .sim-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.8rem, 1.5vw, 1.5rem);
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        @media (max-width: 800px) {
+            .sim-container { grid-template-columns: 1fr; }
+        }
+        .sim-left, .sim-right {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1vw, 0.8rem);
+        }
+        .sim-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: clamp(8px, 1vw, 12px);
+            padding: clamp(0.6rem, 1.2vw, 1rem);
+        }
+        .sim-hidden { display: none !important; }
+        .sim-step-label {
+            font-family: var(--font-display);
+            font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: clamp(0.3rem, 0.6vh, 0.5rem);
+        }
+        .sim-input-row {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.15rem, 0.3vh, 0.25rem);
+            margin-bottom: clamp(0.4rem, 0.8vh, 0.6rem);
+        }
+        .sim-input-row > label {
+            font-size: clamp(0.65rem, 1vw, 0.82rem);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .sim-input-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg-card-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .sim-input-group:focus-within {
+            border-color: var(--accent);
+        }
+        .sim-input-group.sim-small {
+            flex: 1;
+            min-width: 0;
+        }
+        .sim-dollar, .sim-label-mini {
+            padding: 0 clamp(0.4rem, 0.7vw, 0.6rem);
+            font-size: clamp(0.7rem, 1vw, 0.85rem);
+            color: var(--text-muted);
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .sim-input-group input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+            font-family: var(--font-mono);
+            padding: clamp(0.3rem, 0.6vw, 0.5rem) clamp(0.3rem, 0.5vw, 0.5rem);
+            outline: none;
+            min-width: 0;
+        }
+        .sim-input-group input::placeholder { color: var(--text-muted); }
+        /* hide spinner */
+        .sim-input-group input::-webkit-inner-spin-button,
+        .sim-input-group input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .sim-input-group input[type=number] { -moz-appearance: textfield; }
+
+        .sim-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4em;
+            padding: clamp(0.4rem, 0.7vw, 0.6rem) clamp(1rem, 2vw, 1.5rem);
+            border-radius: 8px;
+            border: none;
+            font-family: var(--font-body);
+            font-size: clamp(0.72rem, 1.1vw, 0.9rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--accent);
+            color: #fff;
+        }
+        .sim-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+        .sim-btn:active { transform: translateY(0); }
+        .sim-btn-accept { background: var(--accent-green); }
+        .sim-btn-reject { background: transparent; border: 1px solid var(--accent-red); color: var(--accent-red); }
+        .sim-btn-reject:hover { background: rgba(239,68,68,0.1); }
+        .sim-actions {
+            display: flex;
+            gap: clamp(0.4rem, 0.8vw, 0.8rem);
+            margin-top: clamp(0.4rem, 0.8vh, 0.6rem);
+            flex-wrap: wrap;
+        }
+
+        /* Logic box */
+        .sim-logic-box {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.25rem, 0.5vh, 0.4rem);
+        }
+        .logic-line {
+            display: flex;
+            align-items: flex-start;
+            gap: clamp(0.3rem, 0.6vw, 0.5rem);
+            font-size: clamp(0.68rem, 1.05vw, 0.85rem);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .logic-line .logic-icon {
+            flex-shrink: 0;
+            width: clamp(1.1rem, 1.8vw, 1.4rem);
+            height: clamp(1.1rem, 1.8vw, 1.4rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: clamp(0.6rem, 0.9vw, 0.75rem);
+            margin-top: 0.15em;
+        }
+        .logic-line.pass .logic-icon { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+        .logic-line.fail .logic-icon { background: rgba(239,68,68,0.12); color: var(--accent-red); }
+        .logic-line.info .logic-icon { background: rgba(59,130,246,0.15); color: var(--accent); }
+        .logic-line.warn .logic-icon { background: rgba(245,158,11,0.15); color: var(--accent-warm); }
+        .logic-result {
+            margin-top: clamp(0.3rem, 0.6vh, 0.5rem);
+            padding: clamp(0.4rem, 0.8vw, 0.6rem);
+            border-radius: 8px;
+            font-size: clamp(0.72rem, 1.1vw, 0.88rem);
+            font-weight: 600;
+            text-align: center;
+        }
+        .logic-result.green { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: var(--accent-green); }
+        .logic-result.blue { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: var(--accent); }
+        .logic-result.purple { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.3); color: var(--accent-purple); }
+        .logic-result.warm { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--accent-warm); }
+        .logic-result.red { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--accent-red); }
+
+        /* Logic steps (generated by JS) */
+        .sim-logic-step {
+            font-size: clamp(0.65rem, 1vw, 0.82rem);
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding: clamp(0.25rem, 0.4vh, 0.35rem) 0;
+        }
+        .sim-logic-step b { color: var(--text-primary); }
+        .sim-logic-divider {
+            border-top: 1px solid var(--border);
+            margin: clamp(0.2rem, 0.4vh, 0.3rem) 0;
+        }
+        .sim-logic-highlight {
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid var(--accent);
+            padding: clamp(0.3rem, 0.6vw, 0.5rem) clamp(0.4rem, 0.8vw, 0.6rem);
+            border-radius: 0 6px 6px 0;
+            margin: clamp(0.15rem, 0.3vh, 0.25rem) 0;
+        }
+        /* Email tag header (generated by JS) */
+        .sim-email-header {
+            margin-bottom: clamp(0.3rem, 0.5vh, 0.5rem);
+        }
+        .sim-email-tag {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 100px;
+            font-size: clamp(0.58rem, 0.85vw, 0.72rem);
+            font-weight: 600;
+            color: #fff;
+        }
+        .sim-email-box p { margin: clamp(0.2rem, 0.4vh, 0.35rem) 0; }
+        .sim-email-box ul { margin: clamp(0.2rem, 0.3vh, 0.3rem) 0; padding-left: 1.2em; }
+        .sim-email-box li { margin: clamp(0.1rem, 0.2vh, 0.15rem) 0; }
+
+        /* Email preview box */
+        .sim-email-box {
+            background: var(--bg-card-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: clamp(0.6rem, 1vw, 0.9rem);
+            font-size: clamp(0.65rem, 1vw, 0.82rem);
+            line-height: 1.65;
+            color: var(--text-secondary);
+            max-height: min(40vh, 350px);
+            overflow-y: auto;
+        }
+        .sim-email-box .email-header {
+            font-size: clamp(0.6rem, 0.85vw, 0.72rem);
+            color: var(--text-muted);
+            margin-bottom: clamp(0.3rem, 0.5vh, 0.4rem);
+            padding-bottom: clamp(0.2rem, 0.4vh, 0.3rem);
+            border-bottom: 1px solid var(--border);
+        }
+        .sim-email-box .email-body {
+            white-space: pre-wrap;
+            color: var(--text-primary);
+            font-size: clamp(0.65rem, 0.95vw, 0.8rem);
+        }
+        .sim-email-box .email-sig {
+            margin-top: clamp(0.4rem, 0.8vh, 0.6rem);
+            color: var(--text-muted);
+            font-size: clamp(0.6rem, 0.85vw, 0.72rem);
+        }
+
+        /* Reset button */
+        .sim-reset {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: clamp(0.65rem, 0.9vw, 0.78rem);
+            padding: clamp(0.25rem, 0.4vw, 0.35rem) clamp(0.6rem, 1vw, 0.8rem);
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-body);
+            transition: all 0.2s;
+        }
+        .sim-reset:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+
+        .text-accent { color: var(--accent); }
+        .text-green { color: var(--accent-green); }
+        .text-warm { color: var(--accent-warm); }
+        .text-red { color: var(--accent-red); }
+        .text-purple { color: var(--accent-purple); }
+        .text-muted { color: var(--text-muted); }
+        .mt-auto { margin-top: auto; }
+        .mb-sm { margin-bottom: clamp(0.3rem, 0.6vh, 0.5rem); }
+        .mb-md { margin-bottom: clamp(0.6rem, 1.2vh, 1rem); }
+        .w-full { width: 100%; }
+    </style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Nav Dots -->
+<nav class="nav-dots" id="navDots"></nav>
+
+<!-- Edit -->
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="编辑模式 (E)">✏️</button>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 01: TITLE
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide title-slide">
+    <span class="slide-num">01 / 15</span>
+    <div class="slide-content">
+        <div class="title-badge reveal">内部汇报 · V3.6.7</div>
+        <h1 class="reveal">PriceFox<br>达人合作自动化系统</h1>
+        <p class="subtitle reveal" style="margin-top: clamp(0.8rem, 1.5vh, 1.2rem);">从找到达人到视频发布，全流程自动化运行</p>
+        <p class="title-meta reveal">御动科技 · 2026年3月</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 02: OVERVIEW
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">02 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">系统全景</div>
+        <h2 class="reveal">一句话理解这套系统</h2>
+        <p class="subtitle reveal" style="max-width:60ch; margin-bottom: var(--content-gap);">系统覆盖 KOL 合作的完整生命周期，人只在关键决策点介入，其余 7×24 小时自动执行。</p>
+
+        <div class="stage-flow reveal" style="margin-bottom: var(--content-gap);">
+            <span class="stage-chip active">找到达人</span>
+            <span class="stage-arrow">→</span>
+            <span class="stage-chip active">发送邮件</span>
+            <span class="stage-arrow">→</span>
+            <span class="stage-chip active">自动回复</span>
+            <span class="stage-arrow">→</span>
+            <span class="stage-chip active">智能谈判</span>
+            <span class="stage-arrow">→</span>
+            <span class="stage-chip active">推进合作</span>
+            <span class="stage-arrow">→</span>
+            <span class="stage-chip active">视频发布</span>
+        </div>
+
+        <div class="cards-grid cols-3 reveal">
+            <div class="info-card">
+                <div class="card-icon">📤</div>
+                <h3>自动外发</h3>
+                <p>个性化冷邮件 + 60 邮箱轮换 + 智能跟进</p>
+            </div>
+            <div class="info-card">
+                <div class="card-icon">🤖</div>
+                <h3>智能回复</h3>
+                <p>四层分类管线 + 14 条质检规则自动拦截</p>
+            </div>
+            <div class="info-card">
+                <div class="card-icon">💰</div>
+                <h3>数据驱动谈判</h3>
+                <p>EV 定价模型 + 多轮谈判引擎 + 预算管控</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 03: SECTION — 达人触达
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide section-slide">
+    <span class="slide-num">03 / 15</span>
+    <div class="slide-content">
+        <div class="section-number reveal">01</div>
+        <h2 class="reveal">达人触达（外发）</h2>
+        <p class="subtitle reveal">向 YouTube / TikTok 达人自动发送个性化冷邮件</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 04: 外发详情
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">04 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">达人触达</div>
+        <h2 class="reveal">一键 Campaign 创建 → 个性化发送</h2>
+
+        <div class="cards-grid cols-2 reveal" style="max-width:950px;">
+            <div class="info-card">
+                <div class="card-icon">🎯</div>
+                <h3>一键建活动</h3>
+                <p>输入关键词 + 达人名单 CSV，系统自动创建邮件活动、配置发送、导入达人并激活</p>
+            </div>
+            <div class="info-card">
+                <div class="card-icon">✨</div>
+                <h3>AI 个性化开场白</h3>
+                <p>调用 YouTube API 获取达人最近视频，AI 生成一句针对该达人内容的开场白</p>
+            </div>
+            <div class="info-card">
+                <div class="card-icon">📧</div>
+                <h3>60 邮箱轮换</h3>
+                <p>20 个域名 × 3 个前缀自动轮换发送，降低进垃圾箱风险</p>
+            </div>
+            <div class="info-card">
+                <div class="card-icon">⏱️</div>
+                <h3>智能发送策略</h3>
+                <p>两封邮件序列（即发 + 2天后跟进），锁定美东 10:00-15:00 活跃时段，每日上限 300 封</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 05: SECTION — 自动回复
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide section-slide">
+    <span class="slide-num">05 / 15</span>
+    <div class="slide-content">
+        <div class="section-number reveal">02</div>
+        <h2 class="reveal">自动回复处理</h2>
+        <p class="subtitle reveal">达人回信后，系统自动分类意图、选择模板、发送回信</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 06: 四层管线
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">06 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">自动回复</div>
+        <h2 class="reveal">四层分类管线</h2>
+
+        <div class="pipeline reveal" style="margin-bottom:var(--content-gap)">
+            <div class="pipeline-step" style="border-left-color: var(--accent-red);">
+                <span class="step-num">L1</span>
+                <span class="step-label">全局规则层 <span class="tag tag-red">8 条硬性规则</span></span>
+                <span class="step-desc">拒绝检测 · 冷却期 · OOO识别 · 身份质疑 · 跨活动拦截</span>
+            </div>
+            <div class="pipeline-arrow">↓ 通过</div>
+            <div class="pipeline-step" style="border-left-color: var(--accent-warm);">
+                <span class="step-num">L2</span>
+                <span class="step-label">关键词匹配层</span>
+                <span class="step-desc">"sounds good" → 感兴趣 · "$500" → 达人报价</span>
+            </div>
+            <div class="pipeline-arrow">↓ 未命中</div>
+            <div class="pipeline-step" style="border-left-color: var(--accent-purple);">
+                <span class="step-num">L3</span>
+                <span class="step-label">AI 语义理解层 <span class="tag tag-purple">Claude</span></span>
+                <span class="step-desc">"send me a brief" → 正确识别为感兴趣</span>
+            </div>
+            <div class="pipeline-arrow">↓ 报价场景</div>
+            <div class="pipeline-step" style="border-left-color: var(--accent-green);">
+                <span class="step-num">L4</span>
+                <span class="step-label">EV 定价引擎层 <span class="tag tag-green">数据驱动</span></span>
+                <span class="step-desc">自动决定接受 / 还价 / 放弃</span>
+            </div>
+        </div>
+
+        <p class="reveal" style="font-size:var(--small-size); color:var(--text-muted);">每封回信发出前还需经过 <strong style="color:var(--text-secondary)">14 条质检规则</strong> 检查，不合格自动拦截</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 07: SECTION — 智能谈判
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide section-slide">
+    <span class="slide-num">07 / 15</span>
+    <div class="slide-content">
+        <div class="section-number reveal">03</div>
+        <h2 class="reveal">智能谈判引擎</h2>
+        <p class="subtitle reveal">基于 EV（达人预期价值）数据驱动的自动定价与多轮谈判</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 08: EV EXPLANATION + UNIFIED OFFER
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">08 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">智能谈判</div>
+        <h2 class="reveal">统一开放询价 + EV 定价模型</h2>
+
+        <div class="cards-grid cols-2 reveal" style="max-width:950px; margin-bottom: var(--content-gap);">
+            <div class="info-card" style="border-left:3px solid var(--accent);">
+                <h3 class="mb-sm">统一开放询价策略</h3>
+                <p>所有类型的达人，首次回复统一使用开放式询价 —— <strong style="color:var(--text-primary)">先问达人报价</strong>，不主动报价。避免低价得罪人，也不再推送按效果付费方案。</p>
+            </div>
+            <div class="info-card" style="border-left:3px solid var(--accent-green);">
+                <h3 class="mb-sm">EV 是什么？</h3>
+                <p>Expected Value = 每位达人对我们的预期商业价值</p>
+                <p style="margin-top:0.4rem; font-family:var(--font-mono); font-size:var(--small-size); color:var(--accent-green);">
+                    EV = 均播 × 美国粉丝占比 × 下载转化率 × 单用户价值
+                </p>
+                <p style="margin-top:0.3rem;">飞书表按达人逐行计算，系统自动读取</p>
+            </div>
+        </div>
+
+        <div class="reveal" style="display:flex; gap:clamp(0.5rem,1vw,1rem); flex-wrap:wrap;">
+            <div class="tag tag-blue">所有达人统一询价</div>
+            <div class="tag tag-red">CPA 模式已完全移除</div>
+            <div class="tag tag-warm">弱匹配达人自动标注 0.18% 转化率</div>
+            <div class="tag tag-green">单达人预算上限 $1,000</div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 09: NEGOTIATION FLOWCHART (STATIC)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">09 / 15</span>
+    <div class="slide-content" style="align-items:center;">
+        <div class="section-label reveal" style="text-align:center;">智能谈判</div>
+        <h2 class="reveal" style="text-align:center; margin-bottom:clamp(0.4rem,1vh,0.8rem);">价格谈判决策流程</h2>
+
+        <div class="negotiation-flow reveal">
+            <div class="flow-node start">达人报出价格</div>
+            <div class="flow-arrow">EV 与报价对比</div>
+            <div class="flow-node decision">EV ≥ $1,000 且报价 > $1,000？</div>
+            <div class="flow-branches">
+                <div class="flow-branch">
+                    <div class="branch-label">是 → 触发预算上限</div>
+                    <div class="flow-node action-warm">第一轮：报价 $1,000 上限</div>
+                    <div class="flow-arrow"><span class="round-label">达人不接受</span></div>
+                    <div class="flow-node action-red">第二轮：礼貌告别</div>
+                </div>
+                <div class="flow-branch">
+                    <div class="branch-label">报价 ≤ EV×1.2</div>
+                    <div class="flow-node action-green" style="font-weight:600;">直接接受 ✓</div>
+                    <div class="flow-arrow"></div>
+                    <div class="flow-node action-green">推进到下一阶段</div>
+                </div>
+                <div class="flow-branch">
+                    <div class="branch-label">EV×1.2 ~ EV×1.5</div>
+                    <div class="flow-node action-blue">第一轮：反报 EV 价格</div>
+                    <div class="flow-arrow"><span class="round-label">达人不接受</span></div>
+                    <div class="flow-node action-blue">第二轮：最终报价 EV×1.2</div>
+                </div>
+                <div class="flow-branch">
+                    <div class="branch-label">报价 > EV×1.5</div>
+                    <div class="flow-node action-purple">第一轮：EV + 专属链接奖金</div>
+                    <div class="flow-arrow"><span class="round-label">达人不接受</span></div>
+                    <div class="flow-node action-red">第二轮：告别 + 未来合作愿景</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 09B: INTERACTIVE NEGOTIATION SIMULATOR ★
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="simSlide" style="overflow-y:auto;">
+    <span class="slide-num">10 / 15</span>
+    <div class="slide-content" style="padding-top:clamp(1rem,2vw,2rem); padding-bottom:clamp(1rem,2vw,2rem); justify-content:flex-start;">
+        <div class="section-label reveal" style="text-align:center;">互动演示</div>
+        <h2 class="reveal" style="text-align:center; margin-bottom:clamp(0.5rem,1vh,0.8rem);">模拟谈判：假设你是达人</h2>
+
+        <!-- Simulator Container -->
+        <div class="sim-container reveal" id="simContainer">
+            <!-- LEFT: Input + Decision Logic -->
+            <div class="sim-left">
+                <!-- Step 1: Input -->
+                <div class="sim-section" id="simInput">
+                    <div class="sim-step-label">① 设定场景</div>
+                    <div class="sim-input-row" style="flex-direction:row; gap:clamp(0.4rem,0.8vw,0.8rem);">
+                        <label style="white-space:nowrap;">达人频道数据</label>
+                        <div style="display:flex; gap:clamp(0.3rem,0.5vw,0.5rem); flex-wrap:wrap;">
+                            <div class="sim-input-group sim-small">
+                                <span class="sim-label-mini">均播</span>
+                                <input type="number" id="avgViewsInput" value="50000" min="0" step="1000" oninput="updateEV()">
+                            </div>
+                            <div class="sim-input-group sim-small">
+                                <span class="sim-label-mini">美国占比</span>
+                                <input type="number" id="usPctInput" value="0.35" min="0" max="1" step="0.05" oninput="updateEV()">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sim-input-row">
+                        <label>达人 EV 值（系统自动计算：均播 × 美国占比 × 0.5% × $6.85）</label>
+                        <div class="sim-input-group" style="background:rgba(59,130,246,0.1); border-color:rgba(59,130,246,0.3);">
+                            <span class="sim-dollar">$</span>
+                            <input type="text" id="evInput" readonly style="color:var(--accent);font-weight:600;cursor:default;background:transparent;">
+                        </div>
+                    </div>
+                    <div class="sim-input-row">
+                        <label>你的报价（作为达人）</label>
+                        <div class="sim-input-group">
+                            <span class="sim-dollar">$</span>
+                            <input type="number" id="priceInput" placeholder="输入你的报价..." min="0" max="50000" step="50">
+                        </div>
+                    </div>
+                    <button class="sim-btn" id="simSubmit" onclick="runSimulation()">提交报价 →</button>
+                </div>
+
+                <!-- Decision Logic (appears after submit) -->
+                <div class="sim-section sim-hidden" id="simLogic">
+                    <div class="sim-step-label">② 系统决策逻辑</div>
+                    <div class="sim-logic-box" id="logicContent"></div>
+
+                    <!-- Accept/Reject buttons -->
+                    <div class="sim-actions sim-hidden" id="simActions">
+                        <button class="sim-btn sim-btn-accept" onclick="handleAccept()">✓ 接受报价</button>
+                        <button class="sim-btn sim-btn-reject" onclick="handleReject()">✗ 拒绝，我要更多</button>
+                    </div>
+                    <div class="sim-actions sim-hidden" id="simFinal"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Email Preview -->
+            <div class="sim-right">
+                <div class="sim-section sim-hidden" id="simEmail">
+                    <div class="sim-step-label">③ 系统自动回复邮件</div>
+                    <div class="sim-email-box" id="emailContent"></div>
+                </div>
+                <!-- Round 2 email (after reject) -->
+                <div class="sim-section sim-hidden" id="simEmail2">
+                    <div class="sim-step-label">④ 第二轮回复邮件</div>
+                    <div class="sim-email-box" id="emailContent2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 10: SECTION — 合作推进
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide section-slide">
+    <span class="slide-num">11 / 15</span>
+    <div class="slide-content">
+        <div class="section-number reveal">04</div>
+        <h2 class="reveal">合作推进（状态管理）</h2>
+        <p class="subtitle reveal">每位达人有一个明确的「当前阶段」，系统自动推进</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 11: 状态机 + 跟进
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">12 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">合作推进</div>
+        <h2 class="reveal">15 个阶段 + 自动跟进机制</h2>
+
+        <div class="reveal mb-md">
+            <p style="font-size:var(--small-size); color:var(--text-muted); margin-bottom:clamp(0.3rem,0.6vh,0.5rem);">核心推进路径</p>
+            <div class="stage-flow">
+                <span class="stage-chip">冷邮已发</span><span class="stage-arrow">→</span>
+                <span class="stage-chip">跟进已发</span><span class="stage-arrow">→</span>
+                <span class="stage-chip active">收到回复</span><span class="stage-arrow">→</span>
+                <span class="stage-chip active">报价已发</span><span class="stage-arrow">→</span>
+                <span class="stage-chip active">报价评估</span><span class="stage-arrow">→</span>
+                <span class="stage-chip active">谈判中</span><span class="stage-arrow">→</span>
+                <span class="stage-chip" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:var(--accent-green);">价格达成</span><span class="stage-arrow">→</span>
+                <span class="stage-chip">Brief</span><span class="stage-arrow">→</span>
+                <span class="stage-chip">合同</span><span class="stage-arrow">→</span>
+                <span class="stage-chip">制作</span><span class="stage-arrow">→</span>
+                <span class="stage-chip" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:var(--accent-green);">完成</span>
+            </div>
+        </div>
+
+        <div class="cards-grid cols-2 reveal" style="max-width:900px;">
+            <div class="info-card">
+                <h3><span class="text-warm">退出状态</span>（6 种）</h3>
+                <p>明确拒绝 · 休假中 · 考虑中 · 婉拒 · 无响应 · 需人工处理</p>
+            </div>
+            <div class="info-card">
+                <h3><span class="text-accent">自动跟进</span></h3>
+                <p>报价后 3 天未回复自动催 · 休假 14 天后自动检查 · 同阶段超 14 天自动告警</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 12: 数据同步 + 自动运行
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">13 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">基础设施</div>
+        <h2 class="reveal">数据同步 + 7×24 自动运行</h2>
+
+        <div class="cards-grid cols-3 reveal" style="margin-bottom:var(--content-gap);">
+            <div class="info-card">
+                <div class="card-icon">🔄</div>
+                <h3>飞书双向同步</h3>
+                <p>达人评分表 ↔ 系统状态自动同步，每天 3 次</p>
+            </div>
+            <div class="info-card">
+                <div class="card-icon">📊</div>
+                <h3>关键词漏斗表</h3>
+                <p>25 列数据自动聚合：触达→打开→回复→各阶段分布</p>
+            </div>
+            <div class="info-card">
+                <div class="card-icon">📋</div>
+                <h3>达人回复报告</h3>
+                <p>完整邮件往来 Excel，含状态、报价、是否需人工等</p>
+            </div>
+        </div>
+
+        <table class="compare-table reveal" style="max-width:850px;">
+            <thead>
+                <tr>
+                    <th>自动任务</th>
+                    <th>频率</th>
+                    <th>内容</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>回复处理</td><td>每天 5 次</td><td>拉取回复 → 分类 → 回信 → 跟进检查 → 超时告警</td></tr>
+                <tr><td>轻量轮询</td><td>每 30 分钟</td><td>仅检查新回复，快速响应</td></tr>
+                <tr><td>飞书同步</td><td>每天 3 次</td><td>评分表 + 漏斗表双向更新</td></tr>
+            </tbody>
+        </table>
+        <p class="reveal" style="font-size:var(--small-size); color:var(--text-muted); margin-top:clamp(0.3rem,0.6vh,0.5rem);">部署在 GitHub Actions 云端，无需本地电脑开机</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 13: 安全护栏
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">14 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">安全机制</div>
+        <h2 class="reveal">安全护栏 — 确保自动化不翻车</h2>
+
+        <div class="cards-grid cols-2 reveal" style="max-width:950px;">
+            <div class="info-card" style="border-left:3px solid var(--accent-red);">
+                <h3><span class="text-red">绝对禁止</span></h3>
+                <p>已拒绝达人不再收到推销 · 不推 CPA 方案 · 不凭空编造价格 · 不泄露中文备注</p>
+            </div>
+            <div class="info-card" style="border-left:3px solid var(--accent-warm);">
+                <h3><span class="text-warm">自动拦截</span></h3>
+                <p>14 条质检规则发送前逐条检查 · 8 条全局规则过滤 · 不合格邮件直接阻止发出</p>
+            </div>
+            <div class="info-card" style="border-left:3px solid var(--accent);">
+                <h3><span class="text-accent">智能处理</span></h3>
+                <p>称呼用真名不用邮箱前缀 · 跨活动全局检查 · 愤怒达人立即停止自动回复</p>
+            </div>
+            <div class="info-card" style="border-left:3px solid var(--accent-green);">
+                <h3><span class="text-green">可追溯</span></h3>
+                <p>所有达人数据和处理结果可审计 · 完整对话历史记录 · 状态转换全程留痕</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 14: 效果对比
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide">
+    <span class="slide-num">15 / 15</span>
+    <div class="slide-content">
+        <div class="section-label reveal">效果</div>
+        <h2 class="reveal">前后对比</h2>
+
+        <table class="compare-table reveal" style="max-width:950px;">
+            <thead>
+                <tr>
+                    <th style="width:20%;">维度</th>
+                    <th style="width:38%;" class="dim">之前（纯人工）</th>
+                    <th style="width:42%;">现在（自动化）</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>日处理量</strong></td>
+                    <td class="dim">一人一天 20-30 封</td>
+                    <td class="highlight">全量自动处理，7×24 运行</td>
+                </tr>
+                <tr>
+                    <td><strong>响应速度</strong></td>
+                    <td class="dim">平均 2-4 小时</td>
+                    <td class="highlight">最快 30 分钟内自动回信</td>
+                </tr>
+                <tr>
+                    <td><strong>定价决策</strong></td>
+                    <td class="dim">凭经验和感觉</td>
+                    <td class="highlight">EV 数据驱动，标准清晰</td>
+                </tr>
+                <tr>
+                    <td><strong>跟进遗漏</strong></td>
+                    <td class="dim">容易忘记、遗漏</td>
+                    <td class="highlight">自动追踪，到期自动催促</td>
+                </tr>
+                <tr>
+                    <td><strong>数据同步</strong></td>
+                    <td class="dim">手动更新飞书表</td>
+                    <td class="highlight">全自动，每天 3 次</td>
+                </tr>
+                <tr>
+                    <td><strong>低级错误</strong></td>
+                    <td class="dim">偶尔叫错名字、重复发邮件</td>
+                    <td class="highlight">14 条质检 + 8 条规则自动拦截</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT: Presentation Controller + Inline Editor
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+/* === SLIDE PRESENTATION CONTROLLER === */
+class SlidePresentation {
+    constructor() {
+        this.slides = document.querySelectorAll('.slide');
+        this.currentSlide = 0;
+        this.setupIntersectionObserver();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupProgressBar();
+        this.setupNavDots();
+    }
+
+    setupIntersectionObserver() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    const idx = Array.from(this.slides).indexOf(entry.target);
+                    if (idx >= 0) {
+                        this.currentSlide = idx;
+                        this.updateProgressBar();
+                        this.updateNavDots();
+                    }
+                }
+            });
+        }, { threshold: 0.4 });
+
+        this.slides.forEach(slide => observer.observe(slide));
+    }
+
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.getAttribute && e.target.getAttribute('contenteditable') === 'true') return;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                this.goToSlide(this.currentSlide + 1);
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                this.goToSlide(this.currentSlide - 1);
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                this.goToSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                this.goToSlide(this.slides.length - 1);
+            }
+        });
+    }
+
+    setupTouchNav() {
+        let startY = 0;
+        document.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; });
+        document.addEventListener('touchend', (e) => {
+            const diff = startY - e.changedTouches[0].clientY;
+            if (Math.abs(diff) > 50) {
+                diff > 0 ? this.goToSlide(this.currentSlide + 1) : this.goToSlide(this.currentSlide - 1);
+            }
+        });
+    }
+
+    goToSlide(index) {
+        if (index < 0 || index >= this.slides.length) return;
+        this.slides[index].scrollIntoView({ behavior: 'smooth' });
+    }
+
+    setupProgressBar() {
+        this.progressBar = document.getElementById('progressBar');
+        this.updateProgressBar();
+    }
+
+    updateProgressBar() {
+        if (this.progressBar) {
+            const pct = ((this.currentSlide + 1) / this.slides.length) * 100;
+            this.progressBar.style.width = pct + '%';
+        }
+    }
+
+    setupNavDots() {
+        const container = document.getElementById('navDots');
+        if (!container) return;
+        this.slides.forEach((_, i) => {
+            const dot = document.createElement('button');
+            dot.classList.add('nav-dot');
+            if (i === 0) dot.classList.add('active');
+            dot.addEventListener('click', () => this.goToSlide(i));
+            container.appendChild(dot);
+        });
+        this.dots = container.querySelectorAll('.nav-dot');
+    }
+
+    updateNavDots() {
+        if (!this.dots) return;
+        this.dots.forEach((d, i) => d.classList.toggle('active', i === this.currentSlide));
+    }
+}
+
+/* === INLINE EDITOR === */
+class InlineEditor {
+    constructor() {
+        this.isActive = false;
+        this.editToggle = document.getElementById('editToggle');
+        this.setupHotzone();
+        this.setupToggle();
+        this.setupKeyboard();
+        this.loadSaved();
+    }
+
+    setupHotzone() {
+        const hotzone = document.getElementById('editHotzone');
+        let hideTimeout = null;
+        const toggle = this.editToggle;
+        const self = this;
+
+        hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); toggle.classList.add('show'); });
+        hotzone.addEventListener('mouseleave', () => {
+            hideTimeout = setTimeout(() => { if (!self.isActive) toggle.classList.remove('show'); }, 400);
+        });
+        toggle.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); });
+        toggle.addEventListener('mouseleave', () => {
+            hideTimeout = setTimeout(() => { if (!self.isActive) toggle.classList.remove('show'); }, 400);
+        });
+        hotzone.addEventListener('click', () => self.toggleEditMode());
+    }
+
+    setupToggle() {
+        this.editToggle.addEventListener('click', () => this.toggleEditMode());
+    }
+
+    setupKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+                this.toggleEditMode();
+            }
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                this.save();
+            }
+        });
+    }
+
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        this.editToggle.classList.toggle('active', this.isActive);
+        if (this.isActive) this.editToggle.classList.add('show');
+
+        const editables = document.querySelectorAll('h1, h2, h3, p, span.step-label, span.step-desc, td, .tag, .branch-label, .round-label, .section-label, .subtitle, .title-badge, .title-meta, .info-card p, .info-card h3');
+        editables.forEach(el => {
+            if (el.closest('.nav-dots') || el.closest('.edit-toggle')) return;
+            el.contentEditable = this.isActive ? 'true' : 'false';
+        });
+    }
+
+    save() {
+        const data = document.querySelector('body').innerHTML;
+        localStorage.setItem('pricefox-slides-v1', data);
+        const toast = document.createElement('div');
+        toast.textContent = '已保存';
+        toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--accent-green);color:#fff;padding:0.5rem 1.5rem;border-radius:100px;font-size:0.85rem;z-index:99999;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
+    }
+
+    loadSaved() {
+        // Uncomment to auto-load from localStorage:
+        // const saved = localStorage.getItem('pricefox-slides-v1');
+        // if (saved) document.querySelector('body').innerHTML = saved;
+    }
+}
+
+/* === NEGOTIATION SIMULATOR === */
+
+// Simulator state
+let simState = { round: 0, ev: 0, price: 0, avgViews: 0, usPct: 0, offerPrice: 0 };
+const SIM_CONVERSION_RATE = 0.005;
+const SIM_CAC = 6.85;
+
+function updateEV() {
+    const avgViews = parseFloat(document.getElementById('avgViewsInput').value) || 0;
+    const usPct = parseFloat(document.getElementById('usPctInput').value) || 0;
+    const ev = Math.round(avgViews * usPct * SIM_CONVERSION_RATE * SIM_CAC);
+    document.getElementById('evInput').value = ev;
+}
+// Initialize EV on page load
+document.addEventListener('DOMContentLoaded', updateEV);
+
+function runSimulation() {
+    const avgViews = parseFloat(document.getElementById('avgViewsInput').value) || 0;
+    const usPct = parseFloat(document.getElementById('usPctInput').value) || 0;
+    const price = parseFloat(document.getElementById('priceInput').value) || 0;
+
+    if (!price || price <= 0) { alert('请输入一个有效的报价金额'); return; }
+
+    const budgetCap = 1000;
+    const evFinal = Math.round(avgViews * usPct * SIM_CONVERSION_RATE * SIM_CAC);
+    const offerPrice = Math.min(evFinal, budgetCap);
+
+    simState = { round: 1, ev: evFinal, price, avgViews, usPct, offerPrice };
+
+    // Build logic text
+    let logic = '';
+    logic += `<div class="sim-logic-step">📊 <b>EV 计算</b>：均播 ${avgViews.toLocaleString()} × 美国占比 ${(usPct*100).toFixed(0)}% × 转化率 0.5% × CAC $6.85 = <b>$${evFinal}</b></div>`;
+    logic += `<div class="sim-logic-step">🎯 <b>EV</b>：$${evFinal}　|　<b>预算上限</b>：$${budgetCap}　|　<b>系统报价上限</b>：$${offerPrice}</div>`;
+    logic += `<div class="sim-logic-step sim-logic-divider"></div>`;
+
+    let emailHtml = '';
+    let branch = '';
+
+    if (price <= offerPrice * 1.2) {
+        // Step 1: 达人报价 ≤ EV × 1.2 → 直接接受
+        branch = 'accept';
+        logic += `<div class="sim-logic-step sim-logic-highlight" style="border-color:var(--accent-green);">✅ <b>判定：直接接受</b><br>达人报价 $${price} ≤ EV×1.2 ($${Math.round(offerPrice * 1.2)})，直接同意合作</div>`;
+        emailHtml = genEmail('accept', price, offerPrice, evFinal, avgViews, usPct);
+    } else if (evFinal >= budgetCap && price > budgetCap) {
+        // Step 0: EV ≥ $1,000 且 达人报价 > $1,000 → 预算上限谈判
+        branch = 'over_cap';
+        logic += `<div class="sim-logic-step sim-logic-highlight" style="border-color:var(--accent-warm);">⚠️ <b>判定：预算上限谈判</b><br>EV $${evFinal} ≥ $${budgetCap} 且达人报价 $${price} > $${budgetCap}</div>`;
+        logic += `<div class="sim-logic-step">→ 系统报价预算上限 $${budgetCap}，同时提供推荐奖金作为补充</div>`;
+        emailHtml = genEmail('budget_cap', price, Math.min(offerPrice, budgetCap), evFinal, avgViews, usPct);
+    } else if (price > offerPrice * 1.5) {
+        // Step 3: 达人报价 > EV × 1.5 → EV + 推荐奖金
+        branch = 'ev_referral';
+        logic += `<div class="sim-logic-step sim-logic-highlight" style="border-color:var(--accent-purple);">💜 <b>判定：报价偏高，EV + 推荐奖金</b><br>达人报价 $${price} > EV×1.5 ($${Math.round(offerPrice * 1.5)})，提供 EV 报价 + 推荐奖金</div>`;
+        const estUsers = Math.round(avgViews * usPct * 0.005);
+        const bonus = estUsers * 2;
+        logic += `<div class="sim-logic-step">→ 推荐奖金：预估用户 ${estUsers} × $2 = <b>$${bonus}</b>，总价值 $${offerPrice + bonus}</div>`;
+        emailHtml = genEmail('ev_referral', price, offerPrice, evFinal, avgViews, usPct);
+    } else {
+        // Step 2: EV×1.2 < 达人报价 ≤ EV×1.5 → 还价到 EV
+        branch = 'counter';
+        logic += `<div class="sim-logic-step sim-logic-highlight" style="border-color:var(--accent);">🔄 <b>判定：还价到 EV 价格</b><br>达人报价 $${price} 在 EV×1.2~1.5 区间 ($${Math.round(offerPrice*1.2)}~$${Math.round(offerPrice*1.5)})，还价到 $${offerPrice}</div>`;
+        emailHtml = genEmail('counter', price, offerPrice, evFinal, avgViews, usPct);
+    }
+
+    simState.branch = branch;
+
+    // Show logic
+    document.getElementById('logicContent').innerHTML = logic;
+    document.getElementById('simLogic').classList.remove('sim-hidden');
+    // Show email
+    document.getElementById('emailContent').innerHTML = emailHtml;
+    document.getElementById('simEmail').classList.remove('sim-hidden');
+    // Show actions (except for direct accept)
+    if (branch === 'accept') {
+        document.getElementById('simActions').classList.add('sim-hidden');
+        document.getElementById('simFinal').innerHTML = '<div style="color:var(--accent-green);font-weight:600;text-align:center;padding:0.5rem;">🎉 达人报价合理，直接达成合作！</div>';
+        document.getElementById('simFinal').classList.remove('sim-hidden');
+    } else {
+        document.getElementById('simActions').classList.remove('sim-hidden');
+        document.getElementById('simFinal').classList.add('sim-hidden');
+    }
+    // Hide round 2
+    document.getElementById('simEmail2').classList.add('sim-hidden');
+}
+
+function handleAccept() {
+    document.getElementById('simActions').classList.add('sim-hidden');
+    document.getElementById('simFinal').innerHTML = '<div style="color:var(--accent-green);font-weight:600;text-align:center;padding:0.5rem;">🎉 恭喜！达人接受了报价，合作达成！<br><span style="font-size:0.8em;color:var(--text-secondary);">系统自动将状态更新为「已合作」</span></div>';
+    document.getElementById('simFinal').classList.remove('sim-hidden');
+}
+
+function handleReject() {
+    document.getElementById('simActions').classList.add('sim-hidden');
+    simState.round = 2;
+    const { ev, price, offerPrice, avgViews, usPct, branch } = simState;
+    const budgetCap = 1000;
+
+    let logic2 = '';
+    let email2 = '';
+
+    if (branch === 'over_cap') {
+        // Round 2 for over-cap: final pass
+        logic2 += `<div class="sim-logic-step">🔄 <b>第二轮</b>：达人拒绝了预算上限报价</div>`;
+        logic2 += `<div class="sim-logic-step sim-logic-highlight" style="border-color:var(--accent-red);">❌ <b>判定：超预算，礼貌收尾</b><br>报价已达预算上限 $${budgetCap}，无法继续加价，发送保持联系邮件</div>`;
+        email2 = genEmail('final_pass', price, offerPrice, ev, avgViews, usPct);
+    } else if (branch === 'counter') {
+        // Step 2 R2: 最终报价 EV × 1.2
+        const finalPrice = Math.round(offerPrice * 1.2);
+        const cappedFinal = Math.min(finalPrice, budgetCap);
+        logic2 += `<div class="sim-logic-step">🔄 <b>第二轮</b>：达人拒绝了首轮还价 $${offerPrice}</div>`;
+        logic2 += `<div class="sim-logic-step sim-logic-highlight" style="border-color:var(--accent-warm);">🤝 <b>判定：最终报价 EV×1.2</b><br>EV $${offerPrice} × 1.2 = <b>$${cappedFinal}</b>，这是我们的最高诚意</div>`;
+        email2 = genEmail('final_offer', price, cappedFinal, ev, avgViews, usPct);
+    } else if (branch === 'ev_referral') {
+        // Step 3 R2: 最终 pass + 保持联系
+        logic2 += `<div class="sim-logic-step">🔄 <b>第二轮</b>：达人拒绝了 EV + 推荐奖金方案</div>`;
+        logic2 += `<div class="sim-logic-step sim-logic-highlight" style="border-color:var(--accent-red);">❌ <b>判定：礼貌收尾</b><br>报价差距过大，发送保持联系邮件，标记为「暂缓合作」</div>`;
+        email2 = genEmail('final_pass', price, offerPrice, ev, avgViews, usPct);
+    }
+
+    // Append round 2 logic
+    const logicBox = document.getElementById('logicContent');
+    logicBox.innerHTML += `<div class="sim-logic-step sim-logic-divider" style="margin-top:0.6rem;"></div>` + logic2;
+
+    // Show round 2 email
+    document.getElementById('emailContent2').innerHTML = email2;
+    document.getElementById('simEmail2').classList.remove('sim-hidden');
+
+    // Show final message
+    document.getElementById('simFinal').innerHTML = `<div style="text-align:center;padding:0.5rem;">
+        <div style="color:var(--accent-warm);font-weight:600;">📨 已发送最终报价邮件</div>
+        <div style="color:var(--text-secondary);font-size:0.8em;margin-top:0.3rem;">如达人仍拒绝，系统将标记为「暂缓合作」并保持长期关系</div>
+        <button class="sim-btn" style="margin-top:0.5rem;" onclick="resetSimulator()">🔄 重新开始</button>
+    </div>`;
+    document.getElementById('simFinal').classList.remove('sim-hidden');
+}
+
+function resetSimulator() {
+    simState = { round: 0, ev: 0, price: 0, avgViews: 0, usPct: 0, offerPrice: 0 };
+    document.getElementById('priceInput').value = '';
+    document.getElementById('simLogic').classList.add('sim-hidden');
+    document.getElementById('simEmail').classList.add('sim-hidden');
+    document.getElementById('simEmail2').classList.add('sim-hidden');
+    document.getElementById('simActions').classList.add('sim-hidden');
+    document.getElementById('simFinal').classList.add('sim-hidden');
+}
+
+function genEmail(type, creatorPrice, offerPrice, ev, avgViews, usPct) {
+    const estUsers = Math.round(avgViews * usPct * 0.005);
+    const bonus = estUsers * 2;
+    const budgetCap = 1000;
+    const finalOffer = Math.min(offerPrice + bonus, budgetCap);
+
+    const templates = {
+        accept: `<div class="sim-email-header">
+            <span class="sim-email-tag" style="background:var(--accent-green);">✓ 接受报价</span>
+        </div>
+        <p>Hi [Creator Name],</p>
+        <p>Thanks so much for getting back to me! $${creatorPrice} works great for us.</p>
+        <p>Here's what we'd love to see in the video:</p>
+        <ul>
+            <li>A brief mention of PriceFox as a price tracking tool</li>
+            <li>Show the Chrome extension in action (install → track a product)</li>
+            <li>Include our link in the description</li>
+        </ul>
+        <p>I'll send over the creative brief shortly. Looking forward to working together!</p>
+        <p>Best,<br><b>Reason</b><br>Growth Manager | PriceFox</p>`,
+
+        counter: `<div class="sim-email-header">
+            <span class="sim-email-tag" style="background:var(--accent);">↩ 还价</span>
+        </div>
+        <p>Hi [Creator Name],</p>
+        <p>Thanks for sharing your rate! I totally understand the value you bring to your audience.</p>
+        <p>Based on our budget and campaign goals, we can offer <b>$${offerPrice}</b> for a dedicated integration. This is our standard rate for channels with similar audience profiles.</p>
+        <p>This would include:</p>
+        <ul>
+            <li>60-90 second integration in your video</li>
+            <li>Link in description for 30 days</li>
+            <li>Creative freedom on how to present PriceFox</li>
+        </ul>
+        <p>Would this work for you? Happy to discuss further!</p>
+        <p>Best,<br><b>Reason</b><br>Growth Manager | PriceFox</p>`,
+
+        ev_referral: `<div class="sim-email-header">
+            <span class="sim-email-tag" style="background:var(--accent-purple);">💜 EV + 推荐奖金</span>
+        </div>
+        <p>Hi [Creator Name],</p>
+        <p>Thanks for your rate! I love your content and would really like to make this work.</p>
+        <p>Here's what we can offer:</p>
+        <ul>
+            <li><b>Fixed fee: $${offerPrice}</b> for the integration</li>
+            <li><b>Referral bonus: ~$${bonus}</b> (estimated ${estUsers} users × $2 per user)</li>
+            <li>Total potential value: <b>$${offerPrice + bonus}</b></li>
+        </ul>
+        <p>The referral bonus is paid on top of the fixed fee — so you'd earn extra for every user who installs PriceFox through your link. Based on your audience size, we estimate this could add significantly to the total.</p>
+        <p>What do you think?</p>
+        <p>Best,<br><b>Reason</b><br>Growth Manager | PriceFox</p>`,
+
+        budget_cap: `<div class="sim-email-header">
+            <span class="sim-email-tag" style="background:var(--accent-warm);">⚠ 预算上限</span>
+        </div>
+        <p>Hi [Creator Name],</p>
+        <p>Thanks for your rate! I really appreciate your transparency.</p>
+        <p>I'll be honest — our maximum budget for individual collaborations is <b>$${budgetCap}</b>. I know that's below your rate of $${creatorPrice}, but I'd love to make this work if possible.</p>
+        <p>On top of the $${budgetCap} fixed fee, we also offer a <b>referral bonus of $2 per user</b> who installs through your link. Based on your channel metrics, that could mean an additional <b>~$${bonus}</b>.</p>
+        <p>Total potential: <b>$${Math.min(budgetCap + bonus, budgetCap + bonus)}</b></p>
+        <p>Would you be open to this arrangement?</p>
+        <p>Best,<br><b>Reason</b><br>Growth Manager | PriceFox</p>`,
+
+        final_offer: `<div class="sim-email-header">
+            <span class="sim-email-tag" style="background:var(--accent-warm);">🤝 最终报价</span>
+        </div>
+        <p>Hi [Creator Name],</p>
+        <p>I completely understand — I want to offer you our absolute best:</p>
+        <ul>
+            <li><b>Final offer: $${Math.min(offerPrice, budgetCap)}</b></li>
+        </ul>
+        <p>This is the highest we can go for this campaign. I truly believe this could be a great partnership — your audience is exactly who we're looking to reach.</p>
+        <p>Let me know your thoughts. Either way, I'd love to stay in touch for future opportunities!</p>
+        <p>Best,<br><b>Reason</b><br>Growth Manager | PriceFox</p>`,
+
+        final_pass: `<div class="sim-email-header">
+            <span class="sim-email-tag" style="background:var(--accent-red);">📭 保持联系</span>
+        </div>
+        <p>Hi [Creator Name],</p>
+        <p>I totally understand — our current budget doesn't match your rate, and I respect that.</p>
+        <p>I'd love to keep you on our radar for future campaigns when we have more flexibility. Your content is fantastic and I think there's real potential for us to work together down the road.</p>
+        <p>Thanks for your time, and feel free to reach out anytime if you're interested in collaborating!</p>
+        <p>Best,<br><b>Reason</b><br>Growth Manager | PriceFox</p>`
+    };
+
+    return templates[type] || '';
+}
+
+/* === INIT === */
+const presentation = new SlidePresentation();
+const editor = new InlineEditor();
+</script>
+
+</body>
+</html>
