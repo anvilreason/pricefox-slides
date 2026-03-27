@@ -1206,7 +1206,7 @@
                         </div>
                     </div>
                     <div class="sim-input-row">
-                        <label>达人 EV 值（系统自动计算：均播 × 美国占比 × 0.5% × $6.85）</label>
+                        <label>达人 EV 值（系统自动计算：均播 × 美国占比 × 0.5% × $5）</label>
                         <div class="sim-input-group" style="background:rgba(59,130,246,0.1); border-color:rgba(59,130,246,0.3);">
                             <span class="sim-dollar">$</span>
                             <input type="text" id="evInput" readonly style="color:var(--accent);font-weight:600;cursor:default;background:transparent;">
@@ -1615,7 +1615,7 @@ class InlineEditor {
 // Simulator state
 let simState = { round: 0, ev: 0, price: 0, avgViews: 0, usPct: 0, offerPrice: 0 };
 const SIM_CONVERSION_RATE = 0.005;
-const SIM_CAC = 6.85;
+const SIM_CAC = 5;
 
 function updateEV() {
     const avgViews = parseFloat(document.getElementById('avgViewsInput').value) || 0;
@@ -1641,7 +1641,7 @@ function runSimulation() {
 
     // Build logic text
     let logic = '';
-    logic += `<div class="sim-logic-step">📊 <b>EV 计算</b>：均播 ${avgViews.toLocaleString()} × 美国占比 ${(usPct*100).toFixed(0)}% × 转化率 0.5% × CAC $6.85 = <b>$${evFinal}</b></div>`;
+    logic += `<div class="sim-logic-step">📊 <b>EV 计算</b>：均播 ${avgViews.toLocaleString()} × 美国占比 ${(usPct*100).toFixed(0)}% × 转化率 0.5% × CAC $5 = <b>$${evFinal}</b></div>`;
     logic += `<div class="sim-logic-step">🎯 <b>EV</b>：$${evFinal}　|　<b>预算上限</b>：$${budgetCap}　|　<b>系统报价上限</b>：$${offerPrice}</div>`;
     logic += `<div class="sim-logic-step sim-logic-divider"></div>`;
 
